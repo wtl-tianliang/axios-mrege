@@ -211,46 +211,62 @@
     return 'http://127.0.0.1';
   }
 
-  var Merge = /*#__PURE__*/_createClass(function Merge(config) {
-    var _this = this;
+  var Merge = /*#__PURE__*/function () {
+    function Merge(config) {
+      var _this = this;
 
-    _classCallCheck(this, Merge);
+      _classCallCheck(this, Merge);
 
-    var url = config.url,
-        method = config.method,
-        data = config.data,
-        params = config.params,
-        _config$baseURL = config.baseURL,
-        baseURL = _config$baseURL === void 0 ? getOrigin() : _config$baseURL;
-
-    if (!/^http(s)?/.test(url)) {
-      url = baseURL + url;
+      this.config = config;
+      this.createHash();
+      this.promise = new Promise(function (resolve, reject) {
+        _this.resolve = resolve;
+        _this.reject = reject;
+      });
     }
 
-    var _URL = new URL(url);
+    _createClass(Merge, [{
+      key: "createHash",
+      value: function createHash() {
+        var _this$config = this.config,
+            url = _this$config.url,
+            method = _this$config.method,
+            data = _this$config.data,
+            params = _this$config.params,
+            baseURL = _this$config.baseURL;
 
-    var query = getQuery(url); // 从地址上提取 query 参数
+        if (!baseURL || !/^http(s)?/.test(baseURL)) {
+          baseURL = getOrigin();
+        }
 
-    if (typeof data !== 'undefined' && !isFormData(data)) {
-      data = JSON.parse(data);
-    }
+        if (!/^http(s)?/.test(url)) {
+          url = baseURL + url;
+        }
 
-    if (isFormData(data)) {
-      data = parseFormData(data);
-    }
+        var _URL = new URL(url);
 
-    var origin = {
-      url: _URL.origin + _URL.pathname,
-      method: method.toUpperCase(),
-      data: Object.assign({}, data, params, query)
-    };
-    var hash = md5__default["default"](JSON.stringify(origin)).toUpperCase();
-    this.id = hash;
-    this.promise = new Promise(function (resolve, reject) {
-      _this.resolve = resolve;
-      _this.reject = reject;
-    });
-  });
+        var query = getQuery(url); // 从地址上提取 query 参数
+
+        if (typeof data !== 'undefined' && !isFormData(data)) {
+          data = JSON.parse(data);
+        }
+
+        if (isFormData(data)) {
+          data = parseFormData(data);
+        }
+
+        var origin = {
+          url: _URL.origin + _URL.pathname,
+          method: method.toUpperCase(),
+          data: Object.assign({}, data, params, query)
+        };
+        var hash = md5__default["default"](JSON.stringify(origin)).toUpperCase();
+        this.id = hash;
+      }
+    }]);
+
+    return Merge;
+  }();
 
   var MergeQueue = /*#__PURE__*/function () {
     function MergeQueue() {
