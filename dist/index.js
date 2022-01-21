@@ -1,8 +1,8 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('axios/lib/adapters/xhr'), require('axios/lib/adapters/http'), require('md5')) :
-  typeof define === 'function' && define.amd ? define(['axios/lib/adapters/xhr', 'axios/lib/adapters/http', 'md5'], factory) :
-  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.axiosMerge = factory(global.browserAdaptor, global.nodeAdaptor, global.md5));
-})(this, (function (browserAdaptor, nodeAdaptor, md5) { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('axios/lib/adapters/xhr'), require('axios/lib/adapters/http'), require('md5')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'axios/lib/adapters/xhr', 'axios/lib/adapters/http', 'md5'], factory) :
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.axiosMerge = {}, global.browserAdaptor, global.nodeAdaptor, global.md5));
+})(this, (function (exports, browserAdaptor, nodeAdaptor, md5) { 'use strict';
 
   function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
 
@@ -212,7 +212,7 @@
   }
 
   var Merge = /*#__PURE__*/function () {
-    function Merge(config) {
+    function Merge(config, from) {
       var _this = this;
 
       _classCallCheck(this, Merge);
@@ -220,8 +220,15 @@
       this.config = config;
       this.createHash();
       this.promise = new Promise(function (resolve, reject) {
-        _this.resolve = resolve;
-        _this.reject = reject;
+        _this.resolve = function (data) {
+          // console.log('resolve', config.url, data)
+          resolve(data);
+        };
+
+        _this.reject = function (data) {
+          console.error('reject', config.url, data);
+          reject(data);
+        };
       });
     }
 
@@ -248,7 +255,7 @@
         var query = getQuery(url); // 从地址上提取 query 参数
 
         if (typeof data !== 'undefined' && !isFormData(data)) {
-          data = JSON.parse(data);
+          data = JSON.stringify(data);
         }
 
         if (isFormData(data)) {
@@ -342,6 +349,9 @@
     };
   }
 
-  return AxiosMerge;
+  exports.Merge = Merge;
+  exports["default"] = AxiosMerge;
+
+  Object.defineProperty(exports, '__esModule', { value: true });
 
 }));

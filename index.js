@@ -18,3 +18,7 @@ export default function AxiosMerge (customAdaptor) {
     return merge.promise
   }
 }
+
+export {
+  Merge
+}

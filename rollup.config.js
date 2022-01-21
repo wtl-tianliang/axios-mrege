@@ -14,6 +14,7 @@ export default {
     {
       file: 'dist/index.min.js',
       name: 'axiosMerge',
+      exports: 'named',
       format: 'umd',
       plugins: [terser()],
       globals
@@ -22,6 +23,7 @@ export default {
       file: 'dist/index.js',
       name: 'axiosMerge',
       format: 'umd',
+      exports: 'named',
       plugins: [],
       globals
     },
@@ -30,13 +32,13 @@ export default {
     {
       file: 'dist/cjs/index.min.js',
       format: 'cjs',
-      exports: 'auto',
+      exports: 'named',
       plugins: [terser()]
     },
     {
       file: 'dist/cjs/index.js',
       format: 'cjs',
-      exports: 'auto',
+      exports: 'named',
       plugins: []
     },
 

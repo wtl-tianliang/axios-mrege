@@ -204,7 +204,7 @@ function getOrigin() {
 }
 
 var Merge = /*#__PURE__*/function () {
-  function Merge(config) {
+  function Merge(config, from) {
     var _this = this;
 
     _classCallCheck(this, Merge);
@@ -212,8 +212,15 @@ var Merge = /*#__PURE__*/function () {
     this.config = config;
     this.createHash();
     this.promise = new Promise(function (resolve, reject) {
-      _this.resolve = resolve;
-      _this.reject = reject;
+      _this.resolve = function (data) {
+        // console.log('resolve', config.url, data)
+        resolve(data);
+      };
+
+      _this.reject = function (data) {
+        console.error('reject', config.url, data);
+        reject(data);
+      };
     });
   }
 
@@ -240,7 +247,7 @@ var Merge = /*#__PURE__*/function () {
       var query = getQuery(url); // 从地址上提取 query 参数
 
       if (typeof data !== 'undefined' && !isFormData(data)) {
-        data = JSON.parse(data);
+        data = JSON.stringify(data);
       }
 
       if (isFormData(data)) {
@@ -334,4 +341,4 @@ function AxiosMerge(customAdaptor) {
   };
 }
 
-export { AxiosMerge as default };
+export { Merge, AxiosMerge as default };
