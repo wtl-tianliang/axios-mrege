@@ -1,6 +1,16 @@
-import browserAdaptor from 'axios/lib/adapters/xhr';
-import nodeAdaptor from 'axios/lib/adapters/http';
+import browserAdapter from 'axios/lib/adapters/xhr';
+import nodeAdapter from 'axios/lib/adapters/http';
 import md5 from 'md5';
+
+function _typeof(obj) {
+  "@babel/helpers - typeof";
+
+  return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) {
+    return typeof obj;
+  } : function (obj) {
+    return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+  }, _typeof(obj);
+}
 
 function _classCallCheck(instance, Constructor) {
   if (!(instance instanceof Constructor)) {
@@ -182,7 +192,7 @@ function parseFormData(form) {
     _iterator.f();
   }
 
-  return data;
+  return JSON.stringify(data);
 }
 function isFormData(data) {
   return data instanceof FormData;
@@ -204,7 +214,7 @@ function getOrigin() {
 }
 
 var Merge = /*#__PURE__*/function () {
-  function Merge(config, from) {
+  function Merge(config) {
     var _this = this;
 
     _classCallCheck(this, Merge);
@@ -212,15 +222,8 @@ var Merge = /*#__PURE__*/function () {
     this.config = config;
     this.createHash();
     this.promise = new Promise(function (resolve, reject) {
-      _this.resolve = function (data) {
-        // console.log('resolve', config.url, data)
-        resolve(data);
-      };
-
-      _this.reject = function (data) {
-        console.error('reject', config.url, data);
-        reject(data);
-      };
+      _this.resolve = resolve;
+      _this.reject = reject;
     });
   }
 
@@ -246,7 +249,7 @@ var Merge = /*#__PURE__*/function () {
 
       var query = getQuery(url); // 从地址上提取 query 参数
 
-      if (typeof data !== 'undefined' && !isFormData(data)) {
+      if (_typeof(data) === 'object' && !isFormData(data)) {
         data = JSON.stringify(data);
       }
 
@@ -257,7 +260,9 @@ var Merge = /*#__PURE__*/function () {
       var origin = {
         url: _URL.origin + _URL.pathname,
         method: method.toUpperCase(),
-        data: Object.assign({}, data, params, query)
+        data: data,
+        params: params,
+        query: query
       };
       var hash = md5(JSON.stringify(origin)).toUpperCase();
       this.id = hash;
@@ -266,6 +271,43 @@ var Merge = /*#__PURE__*/function () {
 
   return Merge;
 }();
+
+function dispatchAdapter(customAdapter) {
+  var mergeQueue = this.mergeQueue;
+  var ignoreQueue = this.ignoreQueue;
+  var adapter = customAdapter || typeof window !== 'undefined' ? browserAdapter : nodeAdapter;
+  return function dispathAxiosMerge(config) {
+    var merge = new Merge(config);
+
+    if (config.ignoreMerge) {
+      // if request config has ignoreMerge field will append to ignore queue.
+      ignoreQueue.set(merge.id, merge);
+    }
+
+    if (!mergeQueue.has(merge.id)) {
+      // 请求队列中不存在该请求
+      adapter(config).then(function (response) {
+        if (!ignoreQueue.has(merge.id)) {
+          mergeQueue.resolve(merge.id, response);
+        } else {
+          merge.resolve(response);
+        }
+      })["catch"](function (error) {
+        if (!ignoreQueue.has(merge.id)) {
+          mergeQueue.reject(merge.id, error);
+        } else {
+          merge.reject(error);
+        }
+      });
+    }
+
+    if (!ignoreQueue.has(merge.id)) {
+      mergeQueue.add(merge); // 向队列添加合并请求
+    }
+
+    return merge.promise;
+  };
+}
 
 var MergeQueue = /*#__PURE__*/function () {
   function MergeQueue() {
@@ -288,7 +330,7 @@ var MergeQueue = /*#__PURE__*/function () {
   }, {
     key: "resolve",
     value: function resolve(mergeId, data) {
-      var list = this.map[mergeId];
+      var list = this.map[mergeId] || [];
 
       while (list.length) {
         var merge = list.pop();
@@ -300,7 +342,7 @@ var MergeQueue = /*#__PURE__*/function () {
   }, {
     key: "reject",
     value: function reject(mergeId, error) {
-      var list = this.map[mergeId];
+      var list = this.map[mergeId] || [];
 
       while (list.length) {
         var merge = list.pop();
@@ -319,26 +361,25 @@ var MergeQueue = /*#__PURE__*/function () {
   return MergeQueue;
 }();
 
-function AxiosMerge(customAdaptor) {
-  // 设置请求适配器
-  var adaptor = customAdaptor || typeof window !== 'undefined' ? browserAdaptor : nodeAdaptor;
-  var queue = new MergeQueue();
-  return function dispathAxiosMerge(config) {
-    var merge = new Merge(config);
+var AxiosMerge = /*#__PURE__*/function () {
+  function AxiosMerge(instance, customAdapter) {
+    _classCallCheck(this, AxiosMerge);
 
-    if (!queue.has(merge.id)) {
-      // 请求队列中不存在该请求
-      adaptor(config).then(function (response) {
-        queue.resolve(merge.id, response);
-      })["catch"](function (error) {
-        queue.reject(merge.id, error);
-      });
+    this.mergeQueue = new MergeQueue();
+    this.ignoreQueue = new Map();
+    instance.defaults.adapter = dispatchAdapter.call(this, customAdapter);
+  }
+
+  _createClass(AxiosMerge, [{
+    key: "ignore",
+    value: function ignore(config) {
+      var merge = new Merge(config);
+      this.ignoreQueue.set(merge.id, merge);
+      return merge;
     }
+  }]);
 
-    queue.add(merge); // 向队列添加合并请求
-
-    return merge.promise;
-  };
-}
+  return AxiosMerge;
+}();
 
 export { Merge, AxiosMerge as default };
