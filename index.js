@@ -4,7 +4,14 @@ import MergeQueue from './lib/MergeQueue'
 
 
 export default class AxiosMerge {
-  constructor(instance, customAdapter) {
+  /**
+   * Create an axiosMerge instance
+   * @param { AxiosInstance } instance
+   * @param { Object } options
+   * @param { Function } options.customAdapter Custom to set up request adapter
+   */
+  constructor(instance, options) {
+    const { customAdapter } = options
     this.mergeQueue = new MergeQueue()
     this.ignoreQueue = new Map()
     instance.defaults.adapter = dispatchAdapter.call(this, customAdapter)
