@@ -9,6 +9,13 @@ axios-merge is an axios helper library for merging identical requests. The libra
 
 ## How to use
 
+### Packaged builds
+
+``` javascript
+npm run build
+npm pack
+`` `
+
 ### Installation
 
 ```javascript
