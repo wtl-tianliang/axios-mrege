@@ -223,11 +223,11 @@ function getOrigin() {
   return 'http://127.0.0.1';
 }
 
-var Merge = /*#__PURE__*/function () {
-  function Merge(config) {
+var Request = /*#__PURE__*/function () {
+  function Request(config) {
     var _this = this;
 
-    _classCallCheck(this, Merge);
+    _classCallCheck(this, Request);
 
     this.config = config;
     this.createHash();
@@ -237,7 +237,7 @@ var Merge = /*#__PURE__*/function () {
     });
   }
 
-  _createClass(Merge, [{
+  _createClass(Request, [{
     key: "createHash",
     value: function createHash() {
       var _this$config = this.config,
@@ -277,105 +277,137 @@ var Merge = /*#__PURE__*/function () {
       var hash = md5__default["default"](JSON.stringify(origin)).toUpperCase();
       this.id = hash;
     }
+  }, {
+    key: "cancel",
+    value: function cancel() {
+      var cancelFn = this.config.cancelFn;
+
+      if (typeof cancelFn !== 'function') {
+        throw new Error('[axios-request] config.cancelFn not function');
+      }
+
+      cancelFn('axios-request canceled');
+    }
   }]);
 
-  return Merge;
+  return Request;
 }();
 
 function dispatchAdapter(customAdapter) {
-  var mergeQueue = this.mergeQueue;
+  var requestQueue = this.requestQueue;
   var ignoreQueue = this.ignoreQueue;
   var adapter = customAdapter || typeof window !== 'undefined' ? browserAdapter__default["default"] : nodeAdapter__default["default"];
-  return function dispathAxiosMerge(config) {
-    var merge = new Merge(config);
+  return function dispathAxiosRequest(config) {
+    var request = new Request(config);
+    var isCancel = config.cancel || false;
 
-    if (config.ignoreMerge) {
-      // if request config has ignoreMerge field will append to ignore queue.
-      ignoreQueue.set(merge.id, merge);
+    if (config.ignoreRequest) {
+      // if request config has ignoreRequest field will append to ignore queue.
+      ignoreQueue.set(request.id, request);
     }
 
-    if (!mergeQueue.has(merge.id)) {
-      // 请求队列中不存在该请求
+    if (isCancel || !requestQueue.has(request.id)) {
+      // The request does not exist in the request queue
       adapter(config).then(function (response) {
-        if (!ignoreQueue.has(merge.id)) {
-          mergeQueue.resolve(merge.id, response);
+        if (!ignoreQueue.has(request.id)) {
+          requestQueue.resolve(request.id, response);
         } else {
-          merge.resolve(response);
+          request.resolve(response);
         }
       })["catch"](function (error) {
-        if (!ignoreQueue.has(merge.id)) {
-          mergeQueue.reject(merge.id, error);
+        if (!ignoreQueue.has(request.id) && !isCancel) {
+          requestQueue.reject(request.id, error);
         } else {
-          merge.reject(error);
+          request.reject(error);
         }
       });
     }
 
-    if (!ignoreQueue.has(merge.id)) {
-      mergeQueue.add(merge); // 向队列添加合并请求
+    if (!ignoreQueue.has(request.id)) {
+      requestQueue.add(request); // Adding a request request to the queue
     }
 
-    return merge.promise;
+    if (isCancel && requestQueue.has(request.id)) {
+      // Eliminate predecessor requests and keep the last one
+      requestQueue.cancel(request.id);
+    }
+
+    return request.promise;
   };
 }
 
-var MergeQueue = /*#__PURE__*/function () {
-  function MergeQueue() {
-    _classCallCheck(this, MergeQueue);
+var RequestQueue = /*#__PURE__*/function () {
+  function RequestQueue() {
+    _classCallCheck(this, RequestQueue);
 
     this.map = {};
   }
 
-  _createClass(MergeQueue, [{
+  _createClass(RequestQueue, [{
     key: "add",
-    value: function add(merge) {
-      var mergeId = merge.id;
+    value: function add(request) {
+      var requestId = request.id;
 
-      if (!this.map[mergeId]) {
-        this.map[mergeId] = [];
+      if (!this.map[requestId]) {
+        this.map[requestId] = [];
       }
 
-      this.map[mergeId].push(merge);
+      this.map[requestId].push(request);
     }
   }, {
     key: "resolve",
-    value: function resolve(mergeId, data) {
-      var list = this.map[mergeId] || [];
+    value: function resolve(requestId, data) {
+      var list = this.map[requestId] || [];
 
       while (list.length) {
-        var merge = list.pop();
-        merge.resolve(data);
+        var request = list.pop();
+        request.resolve(data);
       }
 
-      this.map[mergeId] = [];
+      this.map[requestId] = [];
     }
   }, {
     key: "reject",
-    value: function reject(mergeId, error) {
-      var list = this.map[mergeId] || [];
+    value: function reject(requestId, error) {
+      var list = this.map[requestId] || [];
 
       while (list.length) {
-        var merge = list.pop();
-        merge.reject(error);
+        var request = list.pop();
+        request.reject(error);
       }
 
-      this.map[mergeId] = [];
+      this.map[requestId] = [];
+    }
+  }, {
+    key: "cancel",
+    value: function cancel(requestId) {
+      var list = this.map[requestId] || [];
+
+      while (list.length > 1) {
+        var request = list.shift();
+        request.cancel();
+      }
     }
   }, {
     key: "has",
-    value: function has(mergeId) {
-      return this.map[mergeId] && this.map[mergeId].length > 0;
+    value: function has(requestId) {
+      return this.map[requestId] && this.map[requestId].length > 0;
     }
   }]);
 
-  return MergeQueue;
+  return RequestQueue;
 }();
 
 var AxiosMerge = /*#__PURE__*/function () {
+  /**
+   * Create an axiosRequest instance
+   * @param { AxiosInstance } instance
+   * @param { Function } customAdapter Custom to set up request adapter
+   */
   function AxiosMerge(instance, customAdapter) {
     _classCallCheck(this, AxiosMerge);
 
-    this.mergeQueue = new MergeQueue();
+    this.requestQueue = new RequestQueue();
     this.ignoreQueue = new Map();
     instance.defaults.adapter = dispatchAdapter.call(this, customAdapter);
   }
@@ -383,14 +415,14 @@ var AxiosMerge = /*#__PURE__*/function () {
   _createClass(AxiosMerge, [{
     key: "ignore",
     value: function ignore(config) {
-      var merge = new Merge(config);
-      this.ignoreQueue.set(merge.id, merge);
-      return merge;
+      var request = new Request(config);
+      this.ignoreQueue.set(request.id, request);
+      return request;
     }
   }]);
 
   return AxiosMerge;
 }();
 
-exports.Merge = Merge;
+exports.Merge = Request;
 exports["default"] = AxiosMerge;

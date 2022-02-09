@@ -1,28 +1,26 @@
-import dispatchAdapter from './lib/dispatchAxiosMerge'
-import Merge from './lib/Merge'
-import MergeQueue from './lib/MergeQueue'
+import dispatchAdapter from './lib/dispatchAxiosRequest'
+import Request from './lib/Request'
+import RequestQueue from './lib/RequestQueue'
 
 
 export default class AxiosMerge {
   /**
-   * Create an axiosMerge instance
+   * Create an axiosRequest instance
    * @param { AxiosInstance } instance
-   * @param { Object } options
-   * @param { Function } options.customAdapter Custom to set up request adapter
+   * @param { Function } customAdapter Custom to set up request adapter
    */
-  constructor(instance, options) {
-    const { customAdapter } = options
-    this.mergeQueue = new MergeQueue()
+  constructor(instance, customAdapter) {
+    this.requestQueue = new RequestQueue()
     this.ignoreQueue = new Map()
     instance.defaults.adapter = dispatchAdapter.call(this, customAdapter)
   }
   ignore (config) {
-    const merge = new Merge(config)
-    this.ignoreQueue.set(merge.id, merge)
-    return merge
+    const request = new Request(config)
+    this.ignoreQueue.set(request.id, request)
+    return request
   }
 }
 
 export {
-  Merge
+  Request as Merge
 }
