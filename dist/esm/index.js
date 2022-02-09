@@ -235,7 +235,9 @@ var Request = /*#__PURE__*/function () {
           method = _this$config.method,
           data = _this$config.data,
           params = _this$config.params,
-          baseURL = _this$config.baseURL;
+          baseURL = _this$config.baseURL,
+          _this$config$checkPar = _this$config.checkParams,
+          checkParams = _this$config$checkPar === void 0 ? true : _this$config$checkPar;
 
       if (!baseURL || !/^http(s)?/.test(baseURL)) {
         baseURL = getOrigin();
@@ -259,11 +261,17 @@ var Request = /*#__PURE__*/function () {
 
       var origin = {
         url: _URL.origin + _URL.pathname,
-        method: method.toUpperCase(),
-        data: data,
-        params: params,
-        query: query
+        method: method.toUpperCase()
       };
+
+      if (checkParams) {
+        Object.assign(origin, {
+          data: data,
+          params: params,
+          query: query
+        });
+      }
+
       var hash = md5(JSON.stringify(origin)).toUpperCase();
       this.id = hash;
     }
@@ -401,6 +409,11 @@ var AxiosMerge = /*#__PURE__*/function () {
     this.ignoreQueue = new Map();
     instance.defaults.adapter = dispatchAdapter.call(this, customAdapter);
   }
+  /**
+   * ignore merge request
+   * @param {*} config axios request config
+   */
+
 
   _createClass(AxiosMerge, [{
     key: "ignore",

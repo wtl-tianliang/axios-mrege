@@ -26,6 +26,22 @@ npm install axios-merge --save
 <script src="axios-merge/dist/index.min.js">
 ```
 
+### 参数API
+``` javascript
+/**
+ * 创建合并辅助函数实例
+ * @params { Axiosinstance } axiosInstance axios实例
+ * @params { function } customerAdaptar axios自定义适配器
+ **/
+AxiosMerge(axiosInstance, customerAdaptar)
+
+/**
+ * 对某些请求忽略合并
+ * @params { AxiosConfig } config axios请求配置
+ **/
+axiosmerge.ignore(config)
+```
+
 ### 创建实例
 
 ```javascript
@@ -33,7 +49,7 @@ import axios from "axios";
 import AXiosMerge from "axios-merge";
 
 const instance = axios.create({ baseURL: "/" });
-new AxiosMerge(instance);
+const axiosmerge = new AxiosMerge(instance);
 ```
 
 ### 发起请求
@@ -41,6 +57,7 @@ new AxiosMerge(instance);
 ```javascript
 /**
  * @params { object } config 请求配置,与axios原生配置相同
+ * @params { boolean } config.checkParams 检查相同请求时是否校验参数 默认 true
  * @params { boolean } config.ignoreMerge 是否对本次请求不做合并，默认 false 注意:该参数与 cancel 参数互斥，不可同时配置
  * @params { boolean } config.cancel 是否启用前序取消功能，默认 false 注意:该参数与 ignoreMerge 参数互斥，不可同时配置
  * @params { function } config.cancelFn 用于取消请求的函数 https://axios-http.com/zh/docs/cancellation
@@ -64,7 +81,9 @@ const CancelToken = axios.CancelToken;
 instance.interceptors.request.use(
   function (config) {
     // config.ignoreMerge = true; // 本次请求如有相同不做合并
-    config.cancel = true; // 本次请求如有相同，取消前序请求，保留最后一次的相应
+    // axiosmerge.ignore(config) // 本次请求如有相同不做合并
+
+    config.cancel = true; // 本次请求如有相同，取消前序请求，保留最后一次的响应
     let fn = null;
     const cancelToken = new CancelToken((cancel) => {
       fn = cancel;

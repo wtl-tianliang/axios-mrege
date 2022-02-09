@@ -26,14 +26,30 @@ npm install axios-merge --save
 <script src="axios-merge/dist/index.min.js">
 ```
 
-### Create an instance
+### Parameters API
+``` javascript
+/**
+ * Create merge helper function instance
+ * @params { axiosinstance } axiosInstance axios instance
+ * @params { function } customerAdaptar axios custom adapter
+ ***/
+AxiosMerge(axiosInstance, customerAdaptar)
+
+/**
+ * Ignore merge for some requests
+ * @params { AxiosConfig } config axios request configuration
+ **/
+axiosmerge.ignore(config)
+`` `
+
+### Create instances
 
 ```javascript
 import axios from "axios";
 import AXiosMerge from "axios-merge";
 
 const instance = axios.create({ baseURL: "/" });
-new AxiosMerge(instance);
+const axiosmerge = new AxiosMerge(instance);
 ```
 
 ### Initiating a request
@@ -41,6 +57,7 @@ new AxiosMerge(instance);
 ```javascript
 /**
  * @params { object } config request configuration, same as axios native configuration
+ * @params { boolean } config.checkParams Check if the same request checks for parameters default true
  * @params { boolean } config.ignoreMerge Whether to not merge this request, default false Note: This parameter is mutually exclusive with the cancel parameter and cannot be configured at the same time.
  * @params { boolean } config.cancel Whether to enable preemptive cancellation, default false Note: This parameter is mutually exclusive with the ignoreMerge parameter and cannot be configured at the same time.
  * @params { function } config.cancelFn The function used to cancel the request https://axios-http.com/zh/docs/cancellation
@@ -63,8 +80,10 @@ const CancelToken = axios;
 
 instance.interceptors.request.use(
   function (config) {
-    // config.ignoreMerge = true; // this request is not merged if it is identical
-    config.cancel = true; // if the request is the same, cancel the previous request and keep the last one accordingly
+    // config.ignoreMerge = true; // This request is not merged if it is the same
+    // axiosmerge.ignore(config) // no merge if this request is identical
+
+    config.cancel = true; // if this request is the same, cancel the previous request and keep the last response
     let fn = null;
     const cancelToken = new CancelToken((cancel) => {
       fn = cancel;
@@ -80,6 +99,3 @@ instance.interceptors.request.use(
   }
 );
 ```
-
-*** Translated with www.DeepL.com/Translator (free version) ***
-

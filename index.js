@@ -14,6 +14,11 @@ export default class AxiosMerge {
     this.ignoreQueue = new Map()
     instance.defaults.adapter = dispatchAdapter.call(this, customAdapter)
   }
+
+  /**
+   * ignore merge request
+   * @param {*} config axios request config
+   */
   ignore (config) {
     const request = new Request(config)
     this.ignoreQueue.set(request.id, request)
