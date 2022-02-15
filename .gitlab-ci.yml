@@ -1,0 +1,15 @@
+stages:
+  - code_stat
+code_stat_job:
+  stage: code_stat
+  script:
+    - echo $GITLAB_USER_EMAIL
+    - echo $CI_PROJECT_NAME
+    - echo $CI_COMMIT_REF_NAME
+    - echo $GITLAB_USER_ID
+    - echo $CI_PROJECT_ID
+    - echo $CI_COMMIT_SHA
+    - /usr/bin/python3 /data/export/python/commit.py $CI_PROJECT_NAME $CI_COMMIT_REF_NAME $GITLAB_USER_ID $CI_PROJECT_ID $CI_COMMIT_SHA
+  when: always
+  tags:
+    - sonar-scanner
