@@ -33,28 +33,14 @@ npm install axios-merge --save
  * @params { axiosinstance } axiosInstance axios instance
  * @params { function } customerAdaptar axios custom adapter
  ***/
-AxiosMerge(axiosInstance, customerAdaptar)
+const axiosmerge = AxiosMerge(axiosInstance, customerAdaptar)
 
 /**
  * Ignore merge for some requests
  * @params { AxiosConfig } config axios request configuration
  **/
 axiosmerge.ignore(config)
-`` `
 
-### Create instances
-
-```javascript
-import axios from "axios";
-import AXiosMerge from "axios-merge";
-
-const instance = axios.create({ baseURL: "/" });
-const axiosmerge = new AxiosMerge(instance);
-```
-
-### Initiating a request
-
-```javascript
 /**
  * @params { object } config request configuration, same as axios native configuration
  * @params { boolean } config.checkParams Check if the same request checks for parameters default true
@@ -71,6 +57,16 @@ instance.options(url[, config])
 instance.post(url[, data[, config]])
 instance.put(url[, data[, config]])
 instance.patch(url[, data[, config]])
+`` `
+
+### Create instances
+
+```javascript
+import axios from "axios";
+import AXiosMerge from "axios-merge";
+
+const instance = axios.create({ baseURL: "/" });
+const axiosmerge = new AxiosMerge(instance);
 ```
 
 ### Use within request interceptors

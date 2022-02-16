@@ -33,28 +33,14 @@ npm install axios-merge --save
  * @params { Axiosinstance } axiosInstance axios实例
  * @params { function } customerAdaptar axios自定义适配器
  **/
-AxiosMerge(axiosInstance, customerAdaptar)
+const axiosmerge = AxiosMerge(axiosInstance, customerAdaptar)
 
 /**
  * 对某些请求忽略合并
  * @params { AxiosConfig } config axios请求配置
  **/
 axiosmerge.ignore(config)
-```
 
-### 创建实例
-
-```javascript
-import axios from "axios";
-import AXiosMerge from "axios-merge";
-
-const instance = axios.create({ baseURL: "/" });
-const axiosmerge = new AxiosMerge(instance);
-```
-
-### 发起请求
-
-```javascript
 /**
  * @params { object } config 请求配置,与axios原生配置相同
  * @params { boolean } config.checkParams 检查相同请求时是否校验参数 默认 true
@@ -71,6 +57,16 @@ instance.options(url[, config])
 instance.post(url[, data[, config]])
 instance.put(url[, data[, config]])
 instance.patch(url[, data[, config]])
+```
+
+### 创建实例
+
+```javascript
+import axios from "axios";
+import AXiosMerge from "axios-merge";
+
+const instance = axios.create({ baseURL: "/" });
+const axiosmerge = new AxiosMerge(instance);
 ```
 
 ### 请求拦截器内使用
