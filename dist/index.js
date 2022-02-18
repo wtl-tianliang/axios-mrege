@@ -1,14 +1,15 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('axios/lib/adapters/xhr'), require('axios/lib/adapters/http'), require('md5')) :
-  typeof define === 'function' && define.amd ? define(['exports', 'axios/lib/adapters/xhr', 'axios/lib/adapters/http', 'md5'], factory) :
-  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.axiosMerge = {}, global.browserAdaptor, global.nodeAdaptor, global.md5));
-})(this, (function (exports, browserAdapter, nodeAdapter, md5) { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('axios/lib/adapters/xhr'), require('axios/lib/adapters/http'), require('md5'), require('axios')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'axios/lib/adapters/xhr', 'axios/lib/adapters/http', 'md5', 'axios'], factory) :
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.axiosMerge = {}, global.browserAdaptor, global.nodeAdaptor, global.md5, global.axios));
+})(this, (function (exports, browserAdapter, nodeAdapter, md5, axios) { 'use strict';
 
   function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
 
   var browserAdapter__default = /*#__PURE__*/_interopDefaultLegacy(browserAdapter);
   var nodeAdapter__default = /*#__PURE__*/_interopDefaultLegacy(nodeAdapter);
   var md5__default = /*#__PURE__*/_interopDefaultLegacy(md5);
+  var axios__default = /*#__PURE__*/_interopDefaultLegacy(axios);
 
   function _typeof(obj) {
     "@babel/helpers - typeof";
@@ -310,6 +311,7 @@
     USE_TUNNEL: 'USE_TUNNEL'
   };
 
+  var CancelToken = axios__default["default"].CancelToken;
   var USE_FIRST = STRATEGY.USE_FIRST,
       USE_LAST = STRATEGY.USE_LAST,
       USE_TUNNEL = STRATEGY.USE_TUNNEL;
@@ -317,6 +319,12 @@
     var requestQueue = this.requestQueue;
     var adapter = customAdapter || typeof window !== 'undefined' ? browserAdapter__default["default"] : nodeAdapter__default["default"];
     return function dispathAxiosRequest(config) {
+      if (config.strategy === USE_LAST && (typeof config.cancelToken !== 'function' || typeof config.cancelFn !== 'function')) {
+        config.cancelToken = new CancelToken(function (cancel) {
+          config.cancelFn = cancel;
+        });
+      }
+
       var request = new Request(config);
       var strategy = config.strategy || USE_TUNNEL;
 

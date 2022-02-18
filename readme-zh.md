@@ -41,8 +41,8 @@ const axiosmerge = new AxiosMerge(axiosInstance, customerAdaptar)
  * @params { boolean } config.checkParams 检查相同请求时是否校验参数 默认 true
  * @params { string } config.strategy 设置本次请求重复时的处理策略。 USE_FIRST保留首次结果， USE_LAST保留最后一次结果， USE_TUNNEL使用当次结果，默认为 USE_TUNNEL
  * @params { boolean } config.distributionResponse USE_LAST策略时将最后一次的响应分发到被取消的请求中 默认为 true
- * @params { function } config.cancelFn 用于取消请求的函数 注意:该参数仅在 strategy=USE_LAST 时生效 https://axios-http.com/zh/docs/cancellation
- * @params { AxiosCancenToken } config.cancelToken 取消请求的信标 注意:该参数仅在 strategy=USE_LAST 时生效 https://axios-http.com/zh/docs/cancellation
+ * @params { function } [config.cancelFn]  可选参数 用于取消请求的函数 注意:该参数仅在 strategy=USE_LAST 时生效 https://axios-http.com/zh/docs/cancellation
+ * @params { AxiosCancenToken } [config.cancelToken] 可选参数 取消请求的信标 注意:该参数仅在 strategy=USE_LAST 时生效 https://axios-http.com/zh/docs/cancellation
  **/
 instance.request(config)
 instance.get(url[, config])

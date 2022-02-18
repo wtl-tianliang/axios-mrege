@@ -5,12 +5,14 @@ Object.defineProperty(exports, '__esModule', { value: true });
 var browserAdapter = require('axios/lib/adapters/xhr');
 var nodeAdapter = require('axios/lib/adapters/http');
 var md5 = require('md5');
+var axios = require('axios');
 
 function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
 
 var browserAdapter__default = /*#__PURE__*/_interopDefaultLegacy(browserAdapter);
 var nodeAdapter__default = /*#__PURE__*/_interopDefaultLegacy(nodeAdapter);
 var md5__default = /*#__PURE__*/_interopDefaultLegacy(md5);
+var axios__default = /*#__PURE__*/_interopDefaultLegacy(axios);
 
 function _typeof(obj) {
   "@babel/helpers - typeof";
@@ -312,6 +314,7 @@ var STRATEGY = {
   USE_TUNNEL: 'USE_TUNNEL'
 };
 
+var CancelToken = axios__default["default"].CancelToken;
 var USE_FIRST = STRATEGY.USE_FIRST,
     USE_LAST = STRATEGY.USE_LAST,
     USE_TUNNEL = STRATEGY.USE_TUNNEL;
@@ -319,6 +322,12 @@ function dispatchAdapter(customAdapter) {
   var requestQueue = this.requestQueue;
   var adapter = customAdapter || typeof window !== 'undefined' ? browserAdapter__default["default"] : nodeAdapter__default["default"];
   return function dispathAxiosRequest(config) {
+    if (config.strategy === USE_LAST && (typeof config.cancelToken !== 'function' || typeof config.cancelFn !== 'function')) {
+      config.cancelToken = new CancelToken(function (cancel) {
+        config.cancelFn = cancel;
+      });
+    }
+
     var request = new Request(config);
     var strategy = config.strategy || USE_TUNNEL;
 

@@ -1,6 +1,7 @@
 import browserAdapter from 'axios/lib/adapters/xhr';
 import nodeAdapter from 'axios/lib/adapters/http';
 import md5 from 'md5';
+import axios from 'axios';
 
 function _typeof(obj) {
   "@babel/helpers - typeof";
@@ -302,6 +303,7 @@ var STRATEGY = {
   USE_TUNNEL: 'USE_TUNNEL'
 };
 
+var CancelToken = axios.CancelToken;
 var USE_FIRST = STRATEGY.USE_FIRST,
     USE_LAST = STRATEGY.USE_LAST,
     USE_TUNNEL = STRATEGY.USE_TUNNEL;
@@ -309,6 +311,12 @@ function dispatchAdapter(customAdapter) {
   var requestQueue = this.requestQueue;
   var adapter = customAdapter || typeof window !== 'undefined' ? browserAdapter : nodeAdapter;
   return function dispathAxiosRequest(config) {
+    if (config.strategy === USE_LAST && (typeof config.cancelToken !== 'function' || typeof config.cancelFn !== 'function')) {
+      config.cancelToken = new CancelToken(function (cancel) {
+        config.cancelFn = cancel;
+      });
+    }
+
     var request = new Request(config);
     var strategy = config.strategy || USE_TUNNEL;
 
