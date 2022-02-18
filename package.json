@@ -1,12 +1,20 @@
 {
   "name": "axios-merge",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "axios-merge is an axios helper library for merging identical requests.",
   "main": "dist/index.js",
   "scripts": {
     "build": "rollup -i index.js -c"
   },
   "author": "wtl",
+  "bugs": {
+    "url": "https://github.com/wtlsky/axios-mrege/issues",
+    "email": "wwwszsxcn@hotmail.com"
+  },
+  "repository": {
+    "url": "https://github.com/wtlsky/axios-mrege",
+    "type": "git"
+  },
   "license": "ISC",
   "dependencies": {
     "md5": "^2.3.0"

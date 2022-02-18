@@ -89,5 +89,3 @@ instance.interceptors.request.use(
 );
 ```
 
-*** Translated with www.DeepL.com/Translator (free version) ***
-
