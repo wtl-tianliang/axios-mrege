@@ -166,7 +166,6 @@ function _createForOfIteratorHelper(o, allowArrayLike) {
 function getQuery(url) {
   var query = {};
   var urlParams = new URLSearchParams(new URL(url).search);
-  window.urlParams = urlParams;
   urlParams.forEach(function (value, key) {
     return query[key] = value;
   });
@@ -190,8 +189,7 @@ function parseFormData(form) {
           val = _step$value[1];
 
       if (val instanceof Blob) {
-        // todo 构造blob唯一ID
-        data[key] = "".concat(val.size).concat(val.type || 'text');
+        data[key] = "".concat(val.name || 'FILE').concat(val.size).concat(val.type || 'text');
       } else {
         data[key] = val;
       }
@@ -223,6 +221,53 @@ function getOrigin() {
   return 'http://127.0.0.1';
 }
 
+function createHash() {
+  var config = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var url = config.url,
+      method = config.method,
+      data = config.data,
+      params = config.params,
+      baseURL = config.baseURL,
+      _config$checkParams = config.checkParams,
+      checkParams = _config$checkParams === void 0 ? true : _config$checkParams;
+
+  if (!baseURL || !/^http(s)?/.test(baseURL)) {
+    baseURL = getOrigin();
+  }
+
+  if (!/^http(s)?/.test(url)) {
+    url = baseURL + url;
+  }
+
+  var _URL = new URL(url);
+
+  var query = getQuery(url); // 从地址上提取 query 参数
+
+  if (_typeof(data) === 'object' && !isFormData(data)) {
+    data = JSON.stringify(data);
+  }
+
+  if (isFormData(data)) {
+    data = parseFormData(data);
+  }
+
+  var origin = {
+    url: _URL.origin + _URL.pathname,
+    method: method.toUpperCase()
+  };
+
+  if (checkParams) {
+    Object.assign(origin, {
+      data: data,
+      params: params,
+      query: query
+    });
+  }
+
+  var hash = md5__default["default"](JSON.stringify(origin)).toUpperCase();
+  return hash;
+}
+
 var Request = /*#__PURE__*/function () {
   function Request(config) {
     var _this = this;
@@ -230,7 +275,7 @@ var Request = /*#__PURE__*/function () {
     _classCallCheck(this, Request);
 
     this.config = config;
-    this.createHash();
+    this.id = createHash(config);
     this.promise = new Promise(function (resolve, reject) {
       _this.resolve = resolve;
       _this.reject = reject;
@@ -238,106 +283,73 @@ var Request = /*#__PURE__*/function () {
   }
 
   _createClass(Request, [{
-    key: "createHash",
-    value: function createHash() {
-      var _this$config = this.config,
-          url = _this$config.url,
-          method = _this$config.method,
-          data = _this$config.data,
-          params = _this$config.params,
-          baseURL = _this$config.baseURL,
-          _this$config$checkPar = _this$config.checkParams,
-          checkParams = _this$config$checkPar === void 0 ? true : _this$config$checkPar;
-
-      if (!baseURL || !/^http(s)?/.test(baseURL)) {
-        baseURL = getOrigin();
-      }
-
-      if (!/^http(s)?/.test(url)) {
-        url = baseURL + url;
-      }
-
-      var _URL = new URL(url);
-
-      var query = getQuery(url); // 从地址上提取 query 参数
-
-      if (_typeof(data) === 'object' && !isFormData(data)) {
-        data = JSON.stringify(data);
-      }
-
-      if (isFormData(data)) {
-        data = parseFormData(data);
-      }
-
-      var origin = {
-        url: _URL.origin + _URL.pathname,
-        method: method.toUpperCase()
-      };
-
-      if (checkParams) {
-        Object.assign(origin, {
-          data: data,
-          params: params,
-          query: query
-        });
-      }
-
-      var hash = md5__default["default"](JSON.stringify(origin)).toUpperCase();
-      this.id = hash;
-    }
-  }, {
     key: "cancel",
     value: function cancel() {
-      var cancelFn = this.config.cancelFn;
+      var _this$config = this.config,
+          cancelFn = _this$config.cancelFn,
+          cancelToken = _this$config.cancelToken,
+          _this$config$distribu = _this$config.distributionResponse,
+          distributionResponse = _this$config$distribu === void 0 ? true : _this$config$distribu;
 
       if (typeof cancelFn !== 'function') {
         throw new Error('[axios-request] config.cancelFn not function');
       }
 
-      cancelFn('axios-request canceled');
+      cancelFn('[AxiosMerge cancel]');
+
+      if (distributionResponse) {
+        cancelToken.reason = undefined; // 调用原生取消方法后将原因置空，拦截axios默认的取消操作
+      }
     }
   }]);
 
   return Request;
 }();
 
+var STRATEGY = {
+  USE_FIRST: 'USE_FIRST',
+  USE_LAST: 'USE_LAST',
+  USE_TUNNEL: 'USE_TUNNEL'
+};
+
+var USE_FIRST = STRATEGY.USE_FIRST,
+    USE_LAST = STRATEGY.USE_LAST,
+    USE_TUNNEL = STRATEGY.USE_TUNNEL;
 function dispatchAdapter(customAdapter) {
   var requestQueue = this.requestQueue;
-  var ignoreQueue = this.ignoreQueue;
   var adapter = customAdapter || typeof window !== 'undefined' ? browserAdapter__default["default"] : nodeAdapter__default["default"];
   return function dispathAxiosRequest(config) {
     var request = new Request(config);
-    var isCancel = config.cancel || false;
+    var strategy = config.strategy || USE_TUNNEL;
 
-    if (config.ignoreMerge) {
-      // if request config has ignoreMerge field will append to ignore queue.
-      ignoreQueue.set(request.id, request);
-    }
-
-    if (isCancel || !requestQueue.has(request.id)) {
-      // The request does not exist in the request queue
+    if (strategy !== USE_FIRST || strategy === USE_FIRST && !requestQueue.has(request.id)) {
       adapter(config).then(function (response) {
-        if (!ignoreQueue.has(request.id)) {
-          requestQueue.resolve(request.id, response);
-        } else {
+        if (strategy === USE_TUNNEL) {
           request.resolve(response);
+        } else {
+          requestQueue.resolve(request.id, response);
         }
       })["catch"](function (error) {
-        if (!ignoreQueue.has(request.id) && !isCancel) {
-          requestQueue.reject(request.id, error);
-        } else {
+        if (strategy === USE_TUNNEL) {
           request.reject(error);
+        } else {
+          if (!error.__CANCEL__) {
+            requestQueue.reject(request.id, error);
+          }
         }
       });
     }
 
-    if (!ignoreQueue.has(request.id)) {
-      requestQueue.add(request); // Adding a request request to the queue
+    if (strategy === USE_LAST) {
+      requestQueue.cancel(request.id);
     }
 
-    if (isCancel && requestQueue.has(request.id)) {
-      // Eliminate predecessor requests and keep the last one
-      requestQueue.cancel(request.id);
+    if (strategy !== USE_TUNNEL) {
+      requestQueue.add(request);
+    }
+
+    if (strategy === USE_FIRST) {
+      return request.promise;
     }
 
     return request.promise;
@@ -390,11 +402,9 @@ var RequestQueue = /*#__PURE__*/function () {
     key: "cancel",
     value: function cancel(requestId) {
       var list = this.map[requestId] || [];
-
-      while (list.length > 1) {
-        var request = list.shift();
+      list.forEach(function (request) {
         request.cancel();
-      }
+      });
     }
   }, {
     key: "has",
@@ -406,36 +416,19 @@ var RequestQueue = /*#__PURE__*/function () {
   return RequestQueue;
 }();
 
-var AxiosMerge = /*#__PURE__*/function () {
-  /**
-   * Create an axiosRequest instance
-   * @param { AxiosInstance } instance
-   * @param { Function } customAdapter Custom to set up request adapter
-   */
-  function AxiosMerge(instance, customAdapter) {
-    _classCallCheck(this, AxiosMerge);
+var AxiosMerge = /*#__PURE__*/_createClass(
+/**
+ * Create an axiosRequest instance
+ * @param { AxiosInstance } instance
+ * @param { Function } customAdapter Custom to set up request adapter
+ */
+function AxiosMerge(instance, customAdapter) {
+  _classCallCheck(this, AxiosMerge);
 
-    this.requestQueue = new RequestQueue();
-    this.ignoreQueue = new Map();
-    instance.defaults.adapter = dispatchAdapter.call(this, customAdapter);
-  }
-  /**
-   * ignore merge request
-   * @param {*} config axios request config
-   */
-
-
-  _createClass(AxiosMerge, [{
-    key: "ignore",
-    value: function ignore(config) {
-      var request = new Request(config);
-      this.ignoreQueue.set(request.id, request);
-      return request;
-    }
-  }]);
-
-  return AxiosMerge;
-}();
+  this.requestQueue = new RequestQueue();
+  instance.defaults.adapter = dispatchAdapter.call(this, customAdapter);
+});
 
 exports.Merge = Request;
 exports["default"] = AxiosMerge;
+exports.strategy = STRATEGY;

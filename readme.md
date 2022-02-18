@@ -7,16 +7,16 @@ axios-merge is an axios helper library for merging identical requests. The libra
 1. merge identical requests; subsequent requests will be merged into the preceding request, preserving the result of the preceding request.
 2. identical-requests-cancel; the preceding request will be cancelled and the result of the subsequent request will be kept.
 
-## How to use
+## Usage
 
-### Packaged builds
+### Packaged build
 
-``` javascript
+```javascript
 npm run build
 npm pack
-`` `
+```
 
-### Installation
+### Install
 
 ```javascript
 // node
@@ -26,28 +26,23 @@ npm install axios-merge --save
 <script src="axios-merge/dist/index.min.js">
 ```
 
-### Parameters API
-``` javascript
-/**
- * Create merge helper function instance
- * @params { axiosinstance } axiosInstance axios instance
- * @params { function } customerAdaptar axios custom adapter
- ***/
-const axiosmerge = AxiosMerge(axiosInstance, customerAdaptar)
+### parameter signature
 
+```javascript
 /**
- * Ignore merge for some requests
- * @params { AxiosConfig } config axios request configuration
+ * Create merge helper function example
+ * @params { axiosinstance } axiosInstance axios instance
+ * @params { function } [customerAdaptar] axios custom adapter
  **/
-axiosmerge.ignore(config)
+const axiosmerge = new AxiosMerge(axiosInstance, customerAdaptar)
 
 /**
  * @params { object } config request configuration, same as axios native configuration
- * @params { boolean } config.checkParams Check if the same request checks for parameters default true
- * @params { boolean } config.ignoreMerge Whether to not merge this request, default false Note: This parameter is mutually exclusive with the cancel parameter and cannot be configured at the same time.
- * @params { boolean } config.cancel Whether to enable preemptive cancellation, default false Note: This parameter is mutually exclusive with the ignoreMerge parameter and cannot be configured at the same time.
- * @params { function } config.cancelFn The function used to cancel the request https://axios-http.com/zh/docs/cancellation
- * @params { AxiosCancenToken } config.cancelToken The beacon to cancel the request https://axios-http.com/zh/docs/cancellation
+ * @params { boolean } config.checkParams checks if the same request checks for parameters default true
+ * @params { string } config.strategy set the processing strategy when this request is repeated. USE_FIRST keep the first result, USE_LAST keep the last result, USE_TUNNEL use the current result, default is USE_TUNNEL
+ * @params { boolean } config.distributionResponse USE_LAST policy distributes the last response to the cancelled request default is true
+ * @params { function } config.cancelFn function to cancel the request Note: This parameter only takes effect when strategy=USE_LAST https://axios-http.com/zh/docs/cancellation
+ * @params { AxiosCancenToken } config.cancelToken The beacon to cancel the request Note: This parameter only takes effect when strategy=USE_LAST https://axios-http.com/zh/docs/cancellation
  **/
 instance.request(config)
 instance.get(url[, config])
@@ -57,16 +52,17 @@ instance.options(url[, config])
 instance.post(url[, data[, config]])
 instance.put(url[, data[, config]])
 instance.patch(url[, data[, config]])
-`` `
+```
 
-### Create instances
+### Create an instance
 
 ```javascript
 import axios from "axios";
-import AXiosMerge from "axios-merge";
+import AXiosMerge, { strategy } from "axios-merge";
 
 const instance = axios.create({ baseURL: "/" });
 const axiosmerge = new AxiosMerge(instance);
+// const axiosmerge = new AxiosMerge(axios)
 ```
 
 ### Use within request interceptors
@@ -76,22 +72,22 @@ const CancelToken = axios;
 
 instance.interceptors.request.use(
   function (config) {
-    // config.ignoreMerge = true; // This request is not merged if it is the same
-    // axiosmerge.ignore(config) // no merge if this request is identical
-
-    config.cancel = true; // if this request is the same, cancel the previous request and keep the last response
     let fn = null;
     const cancelToken = new CancelToken((cancel) => {
       fn = cancel;
     });
     config.cancelToken = cancelToken; // beacon to cancel the request
     config.cancelFn = fn; // cancel function
+    config.strategy = strategy.USE_FIRST; // USE_LAST USE_TUNNEL
     // do something before sending the request
     return config;
   },
   function (error) {
-    // What to do about the request error
+    // What to do about request errors
     return Promise.reject(error);
   }
 );
 ```
+
+*** Translated with www.DeepL.com/Translator (free version) ***
+

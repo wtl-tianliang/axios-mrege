@@ -11,7 +11,7 @@ axios-merge 是一个用来合并相同请求的 axios 辅助库。该库提供�
 
 ### 打包构建
 
-``` javascript
+```javascript
 npm run build
 npm pack
 ```
@@ -26,28 +26,23 @@ npm install axios-merge --save
 <script src="axios-merge/dist/index.min.js">
 ```
 
-### 参数API
-``` javascript
+### 参数签名
+
+```javascript
 /**
  * 创建合并辅助函数实例
  * @params { Axiosinstance } axiosInstance axios实例
- * @params { function } customerAdaptar axios自定义适配器
+ * @params { function } [customerAdaptar] axios自定义适配器
  **/
-const axiosmerge = AxiosMerge(axiosInstance, customerAdaptar)
-
-/**
- * 对某些请求忽略合并
- * @params { AxiosConfig } config axios请求配置
- **/
-axiosmerge.ignore(config)
+const axiosmerge = new AxiosMerge(axiosInstance, customerAdaptar)
 
 /**
  * @params { object } config 请求配置,与axios原生配置相同
  * @params { boolean } config.checkParams 检查相同请求时是否校验参数 默认 true
- * @params { boolean } config.ignoreMerge 是否对本次请求不做合并，默认 false 注意:该参数与 cancel 参数互斥，不可同时配置
- * @params { boolean } config.cancel 是否启用前序取消功能，默认 false 注意:该参数与 ignoreMerge 参数互斥，不可同时配置
- * @params { function } config.cancelFn 用于取消请求的函数 https://axios-http.com/zh/docs/cancellation
- * @params { AxiosCancenToken } config.cancelToken 取消请求的信标 https://axios-http.com/zh/docs/cancellation
+ * @params { string } config.strategy 设置本次请求重复时的处理策略。 USE_FIRST保留首次结果， USE_LAST保留最后一次结果， USE_TUNNEL使用当次结果，默认为 USE_TUNNEL
+ * @params { boolean } config.distributionResponse USE_LAST策略时将最后一次的响应分发到被取消的请求中 默认为 true
+ * @params { function } config.cancelFn 用于取消请求的函数 注意:该参数仅在 strategy=USE_LAST 时生效 https://axios-http.com/zh/docs/cancellation
+ * @params { AxiosCancenToken } config.cancelToken 取消请求的信标 注意:该参数仅在 strategy=USE_LAST 时生效 https://axios-http.com/zh/docs/cancellation
  **/
 instance.request(config)
 instance.get(url[, config])
@@ -63,10 +58,11 @@ instance.patch(url[, data[, config]])
 
 ```javascript
 import axios from "axios";
-import AXiosMerge from "axios-merge";
+import AXiosMerge, { strategy } from "axios-merge";
 
 const instance = axios.create({ baseURL: "/" });
 const axiosmerge = new AxiosMerge(instance);
+// const axiosmerge = new AxiosMerge(axios)
 ```
 
 ### 请求拦截器内使用
@@ -76,16 +72,13 @@ const CancelToken = axios.CancelToken;
 
 instance.interceptors.request.use(
   function (config) {
-    // config.ignoreMerge = true; // 本次请求如有相同不做合并
-    // axiosmerge.ignore(config) // 本次请求如有相同不做合并
-
-    config.cancel = true; // 本次请求如有相同，取消前序请求，保留最后一次的响应
     let fn = null;
     const cancelToken = new CancelToken((cancel) => {
       fn = cancel;
     });
     config.cancelToken = cancelToken; // 取消请求的信标
     config.cancelFn = fn; // 取消函数
+    config.strategy = strategy.USE_FIRST; // USE_LAST USE_TUNNEL
     // 在发送请求之前做些什么
     return config;
   },
