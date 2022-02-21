@@ -40,9 +40,9 @@ const axiosmerge = new AxiosMerge(axiosInstance, customerAdaptar)
  * @params { object } config request configuration, same as axios native configuration
  * @params { boolean } config.checkParams checks if the same request checks for parameters default true
  * @params { string } config.strategy set the processing strategy when this request is repeated. USE_FIRST keep the first result, USE_LAST keep the last result, USE_TUNNEL use the current result, default is USE_TUNNEL
- * @params { boolean } config.distributionResponse USE_LAST policy distributes the last response to the cancelled request default is true
- * @params { function } config.cancelFn function to cancel the request Note: This parameter only takes effect when strategy=USE_LAST https://axios-http.com/zh/docs/cancellation
- * @params { AxiosCancenToken } config.cancelToken The beacon to cancel the request Note: This parameter only takes effect when strategy=USE_LAST https://axios-http.com/zh/docs/cancellation
+ * @params { boolean } config.distributionResponse Distribute the final response to all identical requests, default is true
+ * @params { function } config.cancelFn Optional parameters. function to cancel the request Note: This parameter only takes effect when strategy=USE_LAST https://axios-http.com/zh/docs/cancellation
+ * @params { AxiosCancenToken } config.cancelToken Optional parameters. The beacon to cancel the request Note: This parameter only takes effect when strategy=USE_LAST https://axios-http.com/zh/docs/cancellation
  **/
 instance.request(config)
 instance.get(url[, config])

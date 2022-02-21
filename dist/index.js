@@ -1,6 +1,6 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('axios/lib/adapters/xhr'), require('axios/lib/adapters/http'), require('md5'), require('axios'), require('axios/lib/cancel/Cancel')) :
-  typeof define === 'function' && define.amd ? define(['exports', 'axios/lib/adapters/xhr', 'axios/lib/adapters/http', 'md5', 'axios', 'axios/lib/cancel/Cancel'], factory) :
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('axios/lib/adapters/xhr'), require('axios/lib/adapters/http'), require('md5'), require('axios')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'axios/lib/adapters/xhr', 'axios/lib/adapters/http', 'md5', 'axios'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.axiosMerge = {}, global.browserAdaptor, global.nodeAdaptor, global.md5, global.axios));
 })(this, (function (exports, browserAdapter, nodeAdapter, md5, axios) { 'use strict';
 
@@ -324,59 +324,52 @@
       var request = new Request(config);
       var strategy = config.strategy || USE_TUNNEL;
 
-      if (strategy !== USE_FIRST || strategy === USE_FIRST && !requestQueue.has(request.id)) {
+      if (strategy === USE_TUNNEL) {
         adapter(config).then(function (response) {
-          if (strategy === USE_TUNNEL) {
-            // 隧道模式一对一解决相应
-            request.resolve(response);
-          } else if (strategy === USE_FIRST) {
-            // 保留第一次结果
-            requestQueue.resolve(request.id, response);
-          } else if (strategy === USE_LAST) {
-            // 保留最后一次结果
-            if (config.distributionResponse) {
-              // 将最后一次的结果同步到被取消的请求中
-              requestQueue.resolve(request.id, response);
-            } else {
-              // 不将最后一次的结果同步到被取消的请求中
-              request.resolve(response);
-            }
+          return request.resolve(response);
+        })["catch"](function (error) {
+          return request.reject(error);
+        });
+      }
 
-            if (requestQueue.isLastRequest(request)) {
-              requestQueue.clear(request.id);
-            }
+      if (strategy === USE_FIRST && !requestQueue.has(request.id)) {
+        adapter(config).then(function (response) {
+          if (config.distributionResponse) {
+            requestQueue.resolve(request.id, response);
+          } else {
+            request.resolve(response);
           }
         })["catch"](function (error) {
-          if (strategy === USE_TUNNEL) {
-            // 隧道模式一对一解决相应
-            request.reject(error);
-          } else if (strategy === USE_FIRST) {
-            // 保留第一次结果
-            requestQueue.reject(request.id, error);
-          } else if (strategy === USE_LAST) {
-            // 保留最后一次结果
-            // 被取消的请求暂时挂起，等待最后一个请求完成后解决
-            if (!error.__CANCEL__ && error.message !== 'Request aborted') {
-              request.reject(error);
-            }
-
-            if (requestQueue.isLastRequest(request)) {
-              requestQueue.clear(request.id);
-            }
-          }
+          requestQueue.reject(request.id, error);
         });
       }
 
       if (strategy === USE_LAST) {
         requestQueue.cancel(request.id);
+        adapter(config).then(function (response) {
+          if (config.distributionResponse) {
+            requestQueue.resolve(request.id, response);
+          } else {
+            request.resolve(response);
+          }
+
+          if (requestQueue.isLastRequest(request)) {
+            requestQueue.clear(request.id);
+          }
+        })["catch"](function (error) {
+          // 被取消的请求暂时挂起，等待最后一个请求完成后解决
+          if (!error.__CANCEL__ && error.message !== 'Request aborted') {
+            request.reject(error);
+          }
+
+          if (requestQueue.isLastRequest(request)) {
+            requestQueue.clear(request.id);
+          }
+        });
       }
 
       if (strategy !== USE_TUNNEL) {
         requestQueue.add(request);
-      }
-
-      if (strategy === USE_FIRST) {
-        return request.promise;
       }
 
       return request.promise;

@@ -2,7 +2,6 @@ import browserAdapter from 'axios/lib/adapters/xhr';
 import nodeAdapter from 'axios/lib/adapters/http';
 import md5 from 'md5';
 import axios from 'axios';
-import 'axios/lib/cancel/Cancel';
 
 function _typeof(obj) {
   "@babel/helpers - typeof";
@@ -317,59 +316,52 @@ function dispatchAdapter(customAdapter) {
     var request = new Request(config);
     var strategy = config.strategy || USE_TUNNEL;
 
-    if (strategy !== USE_FIRST || strategy === USE_FIRST && !requestQueue.has(request.id)) {
+    if (strategy === USE_TUNNEL) {
       adapter(config).then(function (response) {
-        if (strategy === USE_TUNNEL) {
-          // 隧道模式一对一解决相应
-          request.resolve(response);
-        } else if (strategy === USE_FIRST) {
-          // 保留第一次结果
-          requestQueue.resolve(request.id, response);
-        } else if (strategy === USE_LAST) {
-          // 保留最后一次结果
-          if (config.distributionResponse) {
-            // 将最后一次的结果同步到被取消的请求中
-            requestQueue.resolve(request.id, response);
-          } else {
-            // 不将最后一次的结果同步到被取消的请求中
-            request.resolve(response);
-          }
+        return request.resolve(response);
+      })["catch"](function (error) {
+        return request.reject(error);
+      });
+    }
 
-          if (requestQueue.isLastRequest(request)) {
-            requestQueue.clear(request.id);
-          }
+    if (strategy === USE_FIRST && !requestQueue.has(request.id)) {
+      adapter(config).then(function (response) {
+        if (config.distributionResponse) {
+          requestQueue.resolve(request.id, response);
+        } else {
+          request.resolve(response);
         }
       })["catch"](function (error) {
-        if (strategy === USE_TUNNEL) {
-          // 隧道模式一对一解决相应
-          request.reject(error);
-        } else if (strategy === USE_FIRST) {
-          // 保留第一次结果
-          requestQueue.reject(request.id, error);
-        } else if (strategy === USE_LAST) {
-          // 保留最后一次结果
-          // 被取消的请求暂时挂起，等待最后一个请求完成后解决
-          if (!error.__CANCEL__ && error.message !== 'Request aborted') {
-            request.reject(error);
-          }
-
-          if (requestQueue.isLastRequest(request)) {
-            requestQueue.clear(request.id);
-          }
-        }
+        requestQueue.reject(request.id, error);
       });
     }
 
     if (strategy === USE_LAST) {
       requestQueue.cancel(request.id);
+      adapter(config).then(function (response) {
+        if (config.distributionResponse) {
+          requestQueue.resolve(request.id, response);
+        } else {
+          request.resolve(response);
+        }
+
+        if (requestQueue.isLastRequest(request)) {
+          requestQueue.clear(request.id);
+        }
+      })["catch"](function (error) {
+        // 被取消的请求暂时挂起，等待最后一个请求完成后解决
+        if (!error.__CANCEL__ && error.message !== 'Request aborted') {
+          request.reject(error);
+        }
+
+        if (requestQueue.isLastRequest(request)) {
+          requestQueue.clear(request.id);
+        }
+      });
     }
 
     if (strategy !== USE_TUNNEL) {
       requestQueue.add(request);
-    }
-
-    if (strategy === USE_FIRST) {
-      return request.promise;
     }
 
     return request.promise;
