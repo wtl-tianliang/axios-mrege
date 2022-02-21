@@ -4,8 +4,9 @@ import babel from '@rollup/plugin-babel'
 const globals = {
   'axios/lib/adapters/xhr': 'browserAdaptor',
   'axios/lib/adapters/http': 'nodeAdaptor',
+  'axios/lib/cancel/Cancel': 'Cancel',
   md5: 'md5',
-  axios: 'axios'
+  axios: 'axios',
 }
 
 export default {
@@ -59,6 +60,7 @@ export default {
   external: [
     'axios/lib/adapters/xhr',
     'axios/lib/adapters/http',
+    'axios/lib/cancel/Cancel',
     'md5',
     'axios'
   ],

@@ -1,6 +1,6 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('axios/lib/adapters/xhr'), require('axios/lib/adapters/http'), require('md5'), require('axios')) :
-  typeof define === 'function' && define.amd ? define(['exports', 'axios/lib/adapters/xhr', 'axios/lib/adapters/http', 'md5', 'axios'], factory) :
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('axios/lib/adapters/xhr'), require('axios/lib/adapters/http'), require('md5'), require('axios'), require('axios/lib/cancel/Cancel')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'axios/lib/adapters/xhr', 'axios/lib/adapters/http', 'md5', 'axios', 'axios/lib/cancel/Cancel'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.axiosMerge = {}, global.browserAdaptor, global.nodeAdaptor, global.md5, global.axios));
 })(this, (function (exports, browserAdapter, nodeAdapter, md5, axios) { 'use strict';
 
@@ -286,19 +286,15 @@
       value: function cancel() {
         var _this$config = this.config,
             cancelFn = _this$config.cancelFn,
-            cancelToken = _this$config.cancelToken,
-            _this$config$distribu = _this$config.distributionResponse,
-            distributionResponse = _this$config$distribu === void 0 ? true : _this$config$distribu;
+            cancelToken = _this$config.cancelToken;
+        cancelToken.promise = new Promise(function () {});
 
         if (typeof cancelFn !== 'function') {
           throw new Error('[axios-request] config.cancelFn not function');
         }
 
         cancelFn('[AxiosMerge cancel]');
-
-        if (distributionResponse) {
-          cancelToken.reason = undefined; // 调用原生取消方法后将原因置空，拦截axios默认的取消操作
-        }
+        cancelToken.reason = undefined; // 调用原生取消方法后将原因置空，拦截axios默认的取消操作
       }
     }]);
 
@@ -331,16 +327,41 @@
       if (strategy !== USE_FIRST || strategy === USE_FIRST && !requestQueue.has(request.id)) {
         adapter(config).then(function (response) {
           if (strategy === USE_TUNNEL) {
+            // 隧道模式一对一解决相应
             request.resolve(response);
-          } else {
+          } else if (strategy === USE_FIRST) {
+            // 保留第一次结果
             requestQueue.resolve(request.id, response);
+          } else if (strategy === USE_LAST) {
+            // 保留最后一次结果
+            if (config.distributionResponse) {
+              // 将最后一次的结果同步到被取消的请求中
+              requestQueue.resolve(request.id, response);
+            } else {
+              // 不将最后一次的结果同步到被取消的请求中
+              request.resolve(response);
+            }
+
+            if (requestQueue.isLastRequest(request)) {
+              requestQueue.clear(request.id);
+            }
           }
         })["catch"](function (error) {
           if (strategy === USE_TUNNEL) {
+            // 隧道模式一对一解决相应
             request.reject(error);
-          } else {
-            if (!error.__CANCEL__) {
-              requestQueue.reject(request.id, error);
+          } else if (strategy === USE_FIRST) {
+            // 保留第一次结果
+            requestQueue.reject(request.id, error);
+          } else if (strategy === USE_LAST) {
+            // 保留最后一次结果
+            // 被取消的请求暂时挂起，等待最后一个请求完成后解决
+            if (!error.__CANCEL__ && error.message !== 'Request aborted') {
+              request.reject(error);
+            }
+
+            if (requestQueue.isLastRequest(request)) {
+              requestQueue.clear(request.id);
             }
           }
         });
@@ -416,6 +437,18 @@
       key: "has",
       value: function has(requestId) {
         return this.map[requestId] && this.map[requestId].length > 0;
+      }
+    }, {
+      key: "isLastRequest",
+      value: function isLastRequest(request) {
+        var requestId = request.id;
+        var list = this.map[requestId];
+        return list[list.length - 1] === request;
+      }
+    }, {
+      key: "clear",
+      value: function clear(requestId) {
+        this.map[requestId] = [];
       }
     }]);
 
