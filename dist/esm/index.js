@@ -330,6 +330,7 @@ function dispatchAdapter(customAdapter) {
           requestQueue.resolve(request.id, response);
         } else {
           request.resolve(response);
+          requestQueue.clear(request.id);
         }
       })["catch"](function (error) {
         requestQueue.reject(request.id, error);
