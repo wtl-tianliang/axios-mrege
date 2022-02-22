@@ -324,6 +324,10 @@ function dispatchAdapter(customAdapter) {
       });
     }
 
+    if (typeof config.distributionResponse !== 'boolean') {
+      config.distributionResponse = true;
+    }
+
     var request = new Request(config);
     var strategy = config.strategy || USE_TUNNEL;
 

@@ -1,6 +1,6 @@
 {
   "name": "axios-merge",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "axios-merge is an axios helper library for merging identical requests.",
   "main": "dist/index.js",
   "scripts": {
