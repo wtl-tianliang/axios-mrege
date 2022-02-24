@@ -1,11 +1,12 @@
 import { terser } from 'rollup-plugin-terser'
 import babel from '@rollup/plugin-babel'
+import commonjs from 'rollup-plugin-commonjs'
+import resolve from 'rollup-plugin-node-resolve'
 
 const globals = {
   'axios/lib/adapters/xhr': 'browserAdaptor',
   'axios/lib/adapters/http': 'nodeAdaptor',
   'axios/lib/cancel/Cancel': 'Cancel',
-  md5: 'md5',
   axios: 'axios',
 }
 
@@ -61,10 +62,11 @@ export default {
     'axios/lib/adapters/xhr',
     'axios/lib/adapters/http',
     'axios/lib/cancel/Cancel',
-    'md5',
     'axios'
   ],
   plugins: [
+    commonjs(),
+    resolve(),
     babel({ babelHelpers: 'bundled' })
   ]
 }
